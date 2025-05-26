@@ -20,7 +20,7 @@ public class OpenWeatherProvider {
 
     @CircuitBreaker(name = "openweather", fallbackMethod = "fallback")
     public Optional<WeatherResponse> getWeather(String city) {
-        String apiKey = "YOUR_API_KEY";
+        String apiKey = "2326504fb9b100bee21400190e4dbe6d";
         String url = String.format("http://api.openweathermap.org/data/2.5/weather?q=%s,AU&appid=%s", city, apiKey);
         OpenWeatherResponse response = restTemplate.getForObject(url, OpenWeatherResponse.class);
         return ofNullable(WeatherMapper.fromOpenWeather(response));
