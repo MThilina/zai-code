@@ -19,7 +19,7 @@ public class WeatherController {
     @GetMapping("/weather")
     public ResponseEntity<WeatherResponse> getWeather(
             @RequestParam(defaultValue = "melbourne,AU") String city) {
-        WeatherResponse response = weatherService.getWeather(city.toLowerCase().trim());
+        WeatherResponse response = weatherService.getWeather(city.trim());
         return ResponseEntity.ok(response);
     }
 }
