@@ -1,10 +1,10 @@
 package com.zai.code.weather.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zai.code.weather.dto.WeatherResponse;
 import com.zai.code.weather.provider.OpenWeatherProvider;
 import com.zai.code.weather.provider.WeatherStackProvider;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -101,4 +102,39 @@ public class WeatherServiceTest {
         RuntimeException exception = assertThrows(RuntimeException.class, () -> weatherService.getWeather(city));
         assertEquals("All providers failed and no cached data available.", exception.getMessage());
     }
+
+    @Test
+    public void testCacheReturnsValueBeforeExpiry() {
+        Cache<String, WeatherResponse> realCache = Caffeine.newBuilder()
+                .expireAfterWrite(3, TimeUnit.SECONDS)
+                .build();
+
+        weatherService = new WeatherService(weatherStackProvider, openWeatherProvider, realCache);
+
+        realCache.put(city, dummyResponse);
+
+        WeatherResponse result = weatherService.getWeather(city);
+        assertEquals(dummyResponse, result);
+    }
+
+    @Test
+    public void testCacheExpiresAfter3Seconds() throws InterruptedException {
+        Cache<String, WeatherResponse> realCache = Caffeine.newBuilder()
+                .expireAfterWrite(3, TimeUnit.SECONDS)
+                .build();
+
+        weatherService = new WeatherService(weatherStackProvider, openWeatherProvider, realCache);
+
+        realCache.put(city, dummyResponse);
+
+        Thread.sleep(3100); // Wait slightly over 3s for expiration
+
+        // Providers will also fail to simulate fallback to stale (but stale will be null due to expiration)
+        when(weatherStackProvider.getWeather(city)).thenReturn(Optional.empty());
+        when(openWeatherProvider.getWeather(city)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> weatherService.getWeather(city));
+        assertEquals("All providers failed and no cached data available.", exception.getMessage());
+    }
+
 }
