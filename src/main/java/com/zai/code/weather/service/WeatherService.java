@@ -2,6 +2,7 @@ package com.zai.code.weather.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.zai.code.weather.dto.WeatherResponse;
+import com.zai.code.weather.exception.WeatherServiceException;
 import com.zai.code.weather.provider.OpenWeatherProvider;
 import com.zai.code.weather.provider.WeatherStackProvider;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class WeatherService {
 
             // Fetch from providers
             WeatherResponse fresh = fetchFromProviders(city)
-                    .orElseThrow(() -> new RuntimeException("All weather providers failed"));
+                    .orElseThrow(() -> new WeatherServiceException("All weather providers failed"));
 
             weatherCache.put(city, fresh);
             log.info("Cached fresh response for city: {}", city);
@@ -46,7 +47,7 @@ public class WeatherService {
             }
 
             log.error("No cache and all providers failed for city: {}", city, e);
-            throw new RuntimeException("All providers failed and no cached data available.");
+            throw new WeatherServiceException("All providers failed and no cached data available.");
         }
     }
 
