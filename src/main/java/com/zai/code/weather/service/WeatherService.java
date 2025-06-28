@@ -5,11 +5,13 @@ import com.zai.code.weather.dto.WeatherResponse;
 import com.zai.code.weather.provider.OpenWeatherProvider;
 import com.zai.code.weather.provider.WeatherStackProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WeatherService {
@@ -20,9 +22,9 @@ public class WeatherService {
 
     public WeatherResponse getWeather(String city) {
         try {
-            // If cached and still valid
             WeatherResponse cached = weatherCache.getIfPresent(city);
             if (cached != null) {
+                log.info("Cache hit for city: {}", city);
                 return cached;
             }
 
@@ -31,6 +33,7 @@ public class WeatherService {
                     .orElseThrow(() -> new RuntimeException("All weather providers failed"));
 
             weatherCache.put(city, fresh);
+            log.info("Cached fresh response for city: {}", city);
 
             return fresh;
 
@@ -38,9 +41,11 @@ public class WeatherService {
             // Serve stale if available
             WeatherResponse stale = weatherCache.getIfPresent(city);
             if (stale != null) {
+                log.warn("Provider failed. Returning stale cache for city: {}", city);
                 return stale;
             }
 
+            log.error("No cache and all providers failed for city: {}", city, e);
             throw new RuntimeException("All providers failed and no cached data available.");
         }
     }
